@@ -1,0 +1,7 @@
+Pictures/Screenshots/*
+!Pictures/Screenshots/.gitkeep
+
+Videos/Recordings/*
+!Videos/Recordings/.gitkeep
+
+*.log
