@@ -1,0 +1,72 @@
+#!/usr/bin/env python3
+
+import shutil
+import os
+from pathlib import Path
+
+SCRIPT_DIR = Path(__file__).parent.resolve() # --- ~/my-vault/scripts/
+REPO_ROOT = SCRIPT_DIR.parent # --- ~/my-vault/
+DOTFILES_SOURCE = REPO_ROOT / "caelestia-config" # --- ~/my-vault/caelestia-config/
+HOME = Path.home() # --- $HOME
+XDG_CONFIG = HOME / ".config" # --- ~/.config
+
+FILES = {
+        # --- For directories --- #
+        "caelestia": XDG_CONFIG / "caelestia",
+        "swappy": XDG_CONFIG / "swappy",
+        "Pictures": HOME / "Pictures",
+        "Videos": HOME / "Videos",
+        "Documents": HOME / "Documents",
+
+        # --- For files --- #
+        "fish_greeting.fish": XDG_CONFIG / "fish/functions/fish_greeting.fish"
+}
+
+def install():
+    print(f"📂 Repo Root:   {REPO_ROOT}")
+    print(f"📦 Source Dir:  {DOTFILES_SOURCE}")
+    print("-" * 40)
+
+    if not REPO_ROOT.exists():
+        print("❌ Error: Missing root repo directory!")
+        return
+
+    XDG_CONFIG.mkdir(parents=True, exist_ok=True)
+
+    for filename, target in FILES.items():
+        source = DOTFILES_SOURCE / filename
+        
+        if not source.exists():
+            source = REPO_ROOT / filename
+        
+        if not source.exists():
+            print(f"❌ Missing: {filename} (Wala sa config folder, wala din sa root)")
+            continue
+
+        if not target.parent.exists():
+            try:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                print(f"📁 Created dir: {target.parent}")
+            except Exception as e:
+                print(f"💀 Error creating dir {target.parent}: {e}")
+                continue
+
+        if target.exists() or target.is_symlink():
+            try:
+                if target.is_dir() and not target.is_symlink():
+                    shutil.rmtree(target)
+                else:
+                    target.unlink()
+                print(f"♻️  Overriding: {target.name}")
+            except Exception as e:
+                print(f"💀 Failed to nuke {target.name}: {e}")
+                continue
+
+        target.symlink_to(source)
+        print(f"🔗 Linked: {filename} -> {target}")
+
+    print("-" * 40)
+    print("✨ All goods.")
+
+if __name__ == "__main__":
+    install()
