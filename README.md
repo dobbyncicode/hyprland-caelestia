@@ -65,8 +65,6 @@ $HOME
 │   │   └── shell.json                  # Custom caelestia shell config
 │   ├── fish_greeting.fish              # Custom fish greeting
 │   ├── pacman.conf                     # Custom pacman.conf
-│   ├── scripts                         # Caelestia-specifc scripts
-│   │   └── wallpaper-stretch.sh        # Change wallpaper fill to stretch
 │   └── swappy                          # Swappy config
 │       └── config
 ├── Documents                           # Documents directory
@@ -80,7 +78,8 @@ $HOME
 ├── README.md
 ├── scripts                             # General scripts
 │   ├── install-deps                    # Opinionated base package install script
-│   └── link-dots                       # Symlink dotfiles
+│   ├── link-dots                       # Symlink config files
+│   └── wallpaper-stretch.sh            # Change wallpaper fill mode
 └── Videos                              # ~/Videos
     └── Recordings                      # ~/Videos/Recordings
         └── .gitkeep
