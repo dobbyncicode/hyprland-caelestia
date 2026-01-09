@@ -1,9 +1,16 @@
-Pictures/Screenshots/*
-!Pictures/Screenshots/.gitkeep
-
-Videos/Recordings/*
-!Videos/Recordings/.gitkeep
-
+gaming
+programming
 *.log
 
-gaming
+Documents/*
+Videos/*
+Pictures/*
+
+!Videos/Recordings/
+!Pictures/Screenshots/
+!Pictures/Wallpapers/
+
+Videos/Recordings/*
+Pictures/Screenshots/*
+
+!**/.gitkeep
