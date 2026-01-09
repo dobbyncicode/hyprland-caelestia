@@ -7,7 +7,7 @@ import os
 import re
 
 PACKAGES = [
-    # --- Packages --- #
+    # --- General Packages --- #
     "pavucontrol",
     "brave-bin",
     "mpv",
@@ -23,13 +23,19 @@ PACKAGES = [
     "bluez-utils",
     "libva",
     "libva-utils",
+    "pipewire",
+    "pipewire-pulse",
+    "pipewire-jack",
+    "wireplumber",
+    "xdg-desktop-portal",
+    "xdg-desktop-portal-hyprland",
     
     # --- Fonts --- #
     "noto-fonts",
     "noto-fonts-emoji",
     "noto-fonts-cjk",
 
-    # --- Gaming for my potato PC --- #
+    # --- Gaming base for my potato PC --- #
     "mesa",
     "lib32-mesa",
     "vulkan-intel",

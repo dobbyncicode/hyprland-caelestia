@@ -2,6 +2,7 @@
 
 import shutil
 import os
+import subprocess
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).parent.resolve()
@@ -9,6 +10,10 @@ REPO_ROOT = SCRIPT_DIR.parent
 DOTFILES_SOURCE = REPO_ROOT / "caelestia-config"
 HOME = Path.home()
 XDG_CONFIG = HOME / ".config"
+
+if os.geteuid() == 0:
+    print("❌ Don't run with SUDO!")
+    exit(1)
 
 FILES = {
         # --- For directories --- #
@@ -19,7 +24,10 @@ FILES = {
         "Documents": HOME / "Documents",
 
         # --- For files --- #
-        "fish_greeting.fish": XDG_CONFIG / "fish/functions/fish_greeting.fish"
+        "fish_greeting.fish": XDG_CONFIG / "fish/functions/fish_greeting.fish",
+        ".bash_profile": HOME / ".bash_profile",
+        "auto-tty-login.conf": Path("/etc/systemd/system/getty@tty1.service.d/override.conf"),
+        "pacman.conf": Path("/etc/pacman.conf")
 }
 
 def install():
@@ -33,6 +41,15 @@ def install():
 
     XDG_CONFIG.mkdir(parents=True, exist_ok=True)
 
+    repo_conf_path = DOTFILES_SOURCE / "caelestia/repo-path.conf"
+
+    try:
+        with open(repo_conf_path, "w") as f:
+            f.write(f"$root_dir = {REPO_ROOT}\n")
+        print(f"📝 Generated path config: {repo_conf_path}")
+    except Exception as e:
+        print(f"💀 Failed to generate path config: {e}")
+
     for filename, target in FILES.items():
         source = DOTFILES_SOURCE / filename
         
@@ -40,7 +57,30 @@ def install():
             source = REPO_ROOT / filename
         
         if not source.exists():
-            print(f"❌ Missing: {filename} (Wala sa config folder, wala din sa root)")
+            print(f"❌ Missing: {filename} (can't find source)")
+            continue
+
+        try:
+            is_inside_home = target.is_relative_to(HOME)
+        except AttributeError:
+            is_inside_home = str(target).startswith(str(HOME))
+        except ValueError:
+            is_inside_home = False
+
+        if not is_inside_home:
+            print(f"🔒 Outside HOME detected: {target} (SUDO Mode)")
+            try:
+                subprocess.run(["sudo", "mkdir", "-p", str(target.parent)], check=True)
+                subprocess.run(["sudo", "ln", "-sf", str(source), str(target)], check=True)
+                if "systemd" in str(target):
+                    print("⚙️  Reloading systemd daemon...")
+                    subprocess.run(["sudo", "systemctl", "daemon-reload"], check=True)
+                    
+                print(f"🔗 Linked (Sudo): {filename} -> {target}")
+
+            except subprocess.CalledProcessError as e:
+                print(f"💀 Sudo command failed for {filename}: {e}")
+            
             continue
 
         if not target.parent.exists():
