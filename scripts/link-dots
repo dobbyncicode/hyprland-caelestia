@@ -4,11 +4,11 @@ import shutil
 import os
 from pathlib import Path
 
-SCRIPT_DIR = Path(__file__).parent.resolve() # --- ~/my-vault/scripts/
-REPO_ROOT = SCRIPT_DIR.parent # --- ~/my-vault/
-DOTFILES_SOURCE = REPO_ROOT / "caelestia-config" # --- ~/my-vault/caelestia-config/
-HOME = Path.home() # --- $HOME
-XDG_CONFIG = HOME / ".config" # --- ~/.config
+SCRIPT_DIR = Path(__file__).parent.resolve()
+REPO_ROOT = SCRIPT_DIR.parent
+DOTFILES_SOURCE = REPO_ROOT / "caelestia-config"
+HOME = Path.home()
+XDG_CONFIG = HOME / ".config"
 
 FILES = {
         # --- For directories --- #

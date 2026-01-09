@@ -1,0 +1,106 @@
+#!/usr/bin/env python3
+
+import subprocess
+import shutil
+import sys
+import os
+import re
+
+PACKAGES = [
+    # --- Packages --- #
+    "pavucontrol",
+    "brave-bin",
+    "mpv",
+    "thunar",
+    "gvfs",
+    "gvfs-mtp",
+    "gvfs-smb",
+    "thunar-archive-plugin",
+    "file-roller",
+    "tumbler",
+    "ffmpegthumbnailer",
+    "bluez",
+    "bluez-utils",
+    "libva",
+    "libva-utils",
+    
+    # --- Fonts --- #
+    "noto-fonts",
+    "noto-fonts-emoji",
+    "noto-fonts-cjk",
+
+    # --- Gaming for my potato PC --- #
+    "mesa",
+    "lib32-mesa",
+    "vulkan-intel",
+    "lib32-vulkan-intel",
+    "intel-media-driver"
+]
+
+def run_cmd(cmd, shell=False):
+    try:
+        subprocess.run(
+            cmd, 
+            check=True, 
+            shell=shell, 
+            stdout=subprocess.DEVNULL, 
+            stderr=subprocess.PIPE
+        )
+    except subprocess.CalledProcessError as e:
+        sys.exit(f"\n💀 Error: {e.stderr.decode().strip()}")
+
+def check_yay():
+    if shutil.which("yay"):
+        return
+
+    print("🐣 Nah. Can't find 'yay'. Installing it first...")
+    subprocess.run(["sudo", "-v"], check=True)
+
+    print("📦 Installing git & base-devel...")
+    run_cmd(["sudo", "pacman", "-S", "--noconfirm", "--needed", "git", "base-devel"])
+
+    print("⬇️  Cloning yay-bin...")
+    cwd = os.getcwd()
+    tmp_dir = "/tmp/yay-bin"
+    if os.path.exists(tmp_dir): shutil.rmtree(tmp_dir)
+        
+    run_cmd(["git", "clone", "https://aur.archlinux.org/yay-bin.git", tmp_dir])
+    
+    print("🔨 Building yay...")
+    os.chdir(tmp_dir)
+    run_cmd("makepkg -si --noconfirm", shell=True)
+    os.chdir(cwd)
+    print("✅ Yay installed.")
+
+def install():
+    try:
+        subprocess.run(["sudo", "-v"], check=True)
+    except:
+        sys.exit("💀 Sudo auth failed.")
+
+    check_yay()
+
+    print("🔍 Checking installed packages...")
+    res = subprocess.run(["yay", "-Qq"], text=True, capture_output=True)
+    installed = set(res.stdout.splitlines())
+    to_install = [p for p in PACKAGES if p not in installed]
+
+    if not to_install:
+        print("✨ All goods. No new package(s).")
+        return
+
+    print(f"🚀 Queueing {len(to_install)} packages...")
+    print("-" * 40)
+
+    cmd = ["yay", "-S", "--noconfirm", "--needed", "--noprogressbar", "--color", "always"] + to_install
+    
+    try:
+        subprocess.run(cmd, check=True)
+    except subprocess.CalledProcessError:
+        sys.exit("\n💀 Something broke. Check the logs above.")
+
+    print("-" * 40)
+    print("🔥 Done.")
+
+if __name__ == "__main__":
+    install()
