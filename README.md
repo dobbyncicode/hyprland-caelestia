@@ -65,6 +65,7 @@ $HOME
 │   │   ├── repo-path.conf              # Auto-generated local repo path
 │   │   └── shell.json                  # Custom caelestia shell config
 │   ├── fish_greeting.fish              # Custom fish greeting
+│   ├── my-aliases.fish                 # Custom fish abbr
 │   ├── pacman.conf                     # Custom pacman.conf
 │   └── swappy                          # Swappy config
 │       └── config
