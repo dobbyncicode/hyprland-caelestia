@@ -1,0 +1,165 @@
+#!/usr/bin/env python3
+
+import subprocess
+import sys
+import os
+import shutil
+import glob
+
+LOG_LIMIT = "50M" 
+
+PATHS_TO_NUKE = [
+    # --- Custom cleanup directories --- #
+    "~/.cache",
+    "~/.thumbnails",
+    "~/.local/share/Trash",
+    "/root/.cache",
+    "/root/.local/share/Trash",
+]
+
+def get_free_space_mb():
+    total, used, free = shutil.disk_usage("/")
+    return free / (1024 * 1024)
+
+def format_size(mb):
+    if mb >= 1024:
+        return f"{mb / 1024:.2f} GB"
+    return f"{mb:.2f} MB"
+
+def check_sudo_access():
+    if os.geteuid() == 0:
+        print("⚠️  Running as `sudo` is not recommended.")
+        sys.exit(1)
+
+    print("🔑 Acquiring sudo privileges before cleaning up...")
+    try:
+        subprocess.run(["sudo", "-v"], check=True)
+    except subprocess.CalledProcessError:
+        sys.exit("💀 Sudo auth failed. Cannot proceed.")
+
+def run_cmd(cmd, shell=False):
+    subprocess.run(
+        cmd, 
+        check=True, 
+        shell=shell, 
+        stdout=subprocess.DEVNULL, 
+        stderr=subprocess.PIPE
+    )
+
+def nuke_orphans():
+    print("🗑️  Hunting orphans...")
+    while True:
+        res = subprocess.run(["yay", "-Qtdq"], capture_output=True, text=True)
+        orphans = res.stdout.strip().splitlines()
+
+        if not orphans or orphans == ['']:
+            break
+        
+        print(f"   Found {len(orphans)} orphans. Yeeting...")
+        cmd = ["yay", "-Rns", "--noconfirm"] + orphans
+        try:
+            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        except subprocess.CalledProcessError:
+            print("   ⚠️  Stuck orphan detected. Moving on.")
+            break
+
+def clean_pacman_cache():
+    print("📦 Scrubbing package cache...")
+    try:
+        p = subprocess.Popen(
+            ["yay", "-Scc", "--noconfirm"], 
+            stdin=subprocess.PIPE, 
+            stdout=subprocess.DEVNULL, 
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        p.communicate(input="y\ny\n")
+    except Exception as e:
+        print(f"   ⚠️  Cache clean error: {e}")
+
+    try:
+        run_cmd(["yay", "-Yc", "--noconfirm"])
+    except:
+        pass
+
+def vacuum_logs():
+    print(f"📜 Vacuuming journal logs to {LOG_LIMIT}...")
+    run_cmd(["sudo", "journalctl", f"--vacuum-size={LOG_LIMIT}"])
+
+def nuke_path_contents(path):
+    full_path = os.path.expanduser(path)
+    
+    if not os.path.exists(full_path):
+        return
+
+    print(f"💥 Nuking contents of: {path}")
+
+    try:
+        items = glob.glob(os.path.join(full_path, "*"))
+        for item in items:
+            if os.path.isdir(item):
+                shutil.rmtree(item)
+            else:
+                os.remove(item)
+    except PermissionError:
+        cmd = f"sudo rm -rf {full_path}/*"
+        subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
+    except Exception as e:
+        print(f"   ⚠️  Error cleaning {path}: {e}")
+
+def run_custom_nukes():
+    print("☢️  Processing custom nuke list...")
+    for path in PATHS_TO_NUKE:
+        nuke_path_contents(path)
+
+def main():
+    check_sudo_access()
+    
+    print("\n" + "="*40)
+    print("💀 S Y S T E M - C L E A N U P")
+    print("="*40)
+    print("Targets:")
+    print(" - Recursive Orphans")
+    print(" - Pacman/Yay Cache")
+    print(" - System Logs")
+    print(f" - Custom Paths ({len(PATHS_TO_NUKE)} directories)")
+    print("-" * 40)
+
+    start_free = get_free_space_mb()
+    print(f"💾 Current Free Space: {format_size(start_free)}")
+    print("-" * 40)
+
+    confirm = input("⚠️  FULL WIPE. Type 'yes' to proceed: ").strip().lower()
+    
+    if confirm != "yes":
+        print("❌ Aborted. All goods.")
+        sys.exit(0)
+
+    print("\n🚀 Starting cleanup...")
+    
+    try:
+        nuke_orphans()
+        clean_pacman_cache()
+        vacuum_logs()
+        run_custom_nukes()
+    except KeyboardInterrupt:
+        print("\n🛑 Stopped by user.")
+        sys.exit(1)
+
+    end_free = get_free_space_mb()
+    reclaimed = end_free - start_free
+
+    print("\n" + "="*40)
+    print("🔥 DONE.")
+    print(f"💾 Before: {format_size(start_free)}")
+    print(f"💾 After : {format_size(end_free)}")
+    
+    if reclaimed > 0:
+        print(f"🎉 Reclaimed: {format_size(reclaimed)}!")
+    else:
+        print("🤔 No space reclaimed.")
+    
+    print("="*40)
+
+if __name__ == "__main__":
+    main()

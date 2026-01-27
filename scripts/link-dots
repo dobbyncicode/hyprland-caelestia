@@ -22,6 +22,7 @@ FILES = {
         "Pictures": HOME / "Pictures",
         "Videos": HOME / "Videos",
         "Documents": HOME / "Documents",
+        "gaming": HOME / "gaming",
 
         # --- For files --- #
         "fish_greeting.fish": XDG_CONFIG / "fish/functions/fish_greeting.fish",
