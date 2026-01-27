@@ -54,6 +54,7 @@ $HOME
 │   │   │   │   ├── decorations.conf    # Decorations override
 │   │   │   │   └── miscs.conf          # Miscellanious override
 │   │   │   └── All-About-UX            # UX stuff
+│   │   │       ├── auto-start.conf     # Auto-start packages / services
 │   │   │       ├── cursor.conf         # Cursor override
 │   │   │       ├── inputs.conf         # Inputs override
 │   │   │       ├── keybinds.conf       # Keybinds override
@@ -77,9 +78,10 @@ $HOME
 │       └── forest.jpg
 ├── README.md
 ├── scripts                             # General scripts
+│   ├── clean-up                        # System file clean-up / factory reset
 │   ├── install-deps                    # Opinionated base package install script
 │   ├── link-dots                       # Symlink config files
-│   └── wallpaper-stretch.sh            # Change wallpaper fill mode
+│   └── wallpaper-fill                  # Change wallpaper fill mode
 └── Videos                              # ~/Videos
     └── Recordings                      # ~/Videos/Recordings
         └── .gitkeep
