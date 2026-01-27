@@ -1,0 +1,8 @@
+abbr --set-cursor gac 'git add . && git commit -m "%"' 
+abbr upo 'yay -Syyu --noconfirm && poweroff'
+abbr vpnsi 'protonvpn signin '
+abbr vpnso 'protonvpn signout'
+abbr vpnc 'protonvpn connect'
+abbr --set-cursor vpncountry 'protonvpn connect --country "%"'
+abbr --set-cursor vpncity 'protonvpn connect --city "%"'
+abbr vpnd 'protonvpn disconnect'

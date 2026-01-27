@@ -26,6 +26,7 @@ FILES = {
 
         # --- For files --- #
         "fish_greeting.fish": XDG_CONFIG / "fish/functions/fish_greeting.fish",
+        "my-aliases.fish": XDG_CONFIG / "fish/conf.d/my-aliases.fish",
         ".bash_profile": HOME / ".bash_profile",
         "auto-tty-login.conf": Path("/etc/systemd/system/getty@tty1.service.d/override.conf"),
         "pacman.conf": Path("/etc/pacman.conf")

@@ -29,6 +29,7 @@ PACKAGES = [
     "wireplumber",
     "xdg-desktop-portal",
     "xdg-desktop-portal-hyprland",
+    "proton-vpn-cli",
     
     # --- Fonts --- #
     "noto-fonts",
