@@ -1,0 +1,77 @@
+#!/usr/bin/env python3
+
+import sys
+import os
+import shutil
+import re
+import subprocess
+
+TARGET_FILE = "/etc/xdg/quickshell/caelestia/modules/background/Wallpaper.qml"
+
+FILL_MODES = {
+    "1": ("Image.PreserveAspectCrop", "Crop"),
+    "2": ("Image.Stretch", "Stretch"),
+    "3": ("Image.PreserveAspectFit", "Fit"),
+    "4": ("Image.Tile", "Tile")
+}
+
+def check_sudo():
+    if os.geteuid() != 0:
+        print("🔒 Root access is needed...")
+        subprocess.check_call(['sudo', sys.executable] + sys.argv)
+        sys.exit()
+
+def get_user_choice():
+    print("\n🎨 Choose your fighter (Fill Mode):")
+    for key, (mode, desc) in FILL_MODES.items():
+        print(f"  [{key}] {mode} -> {desc}")
+    
+    choice = input("\nSelect [1-4] (Default 1): ").strip()
+    if choice not in FILL_MODES:
+        choice = "1"
+    
+    selected_mode = FILL_MODES[choice][0]
+    print(f"✅ Selected: {selected_mode}")
+    return selected_mode
+
+def patch_file(mode):
+    if not os.path.exists(TARGET_FILE):
+        sys.exit(f"💀 Error: File not found: {TARGET_FILE}")
+
+    print("📦 Creating backup (Wallpaper.qml.bak)...")
+    shutil.copy(TARGET_FILE, TARGET_FILE + ".bak")
+
+    with open(TARGET_FILE, "r") as f:
+        content = f.read()
+    
+    if "fillMode:" in content:
+        print("🔄 Existing fillMode found. Updating it...")
+        new_content = re.sub(r"fillMode:\s*Image\.[a-zA-Z]+", f"fillMode: {mode}", content)
+    else:
+        print("💉 Injecting fillMode line...")
+        new_content = re.sub(
+            r"(id:\s*img)", 
+            f"\\1\n        fillMode: {mode}", 
+            content
+        )
+
+    with open(TARGET_FILE, "w") as f:
+        f.write(new_content)
+    
+    print("✨ Patch applied successfully.")
+
+def main():
+    print("💅 Caelestia Wallpaper Patcher")
+    print("-" * 30)
+    
+    check_sudo()
+
+    mode = get_user_choice()
+
+    patch_file(mode)
+
+    print("-" * 30)
+    print("🔥 Done. Restart your shell/Caelestia to see changes.")
+    
+if __name__ == "__main__":
+    main()

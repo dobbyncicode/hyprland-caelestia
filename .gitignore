@@ -1,0 +1,16 @@
+*.log
+caelestia-config/caelestia/repo-path.conf
+
+Documents/*
+Videos/*
+Pictures/*
+tailscale-files/*
+
+!Videos/Recordings/
+!Pictures/Screenshots/
+!Pictures/Wallpapers/
+
+Videos/Recordings/*
+Pictures/Screenshots/*
+
+!**/.gitkeep
