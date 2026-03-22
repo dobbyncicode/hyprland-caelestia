@@ -1,0 +1,68 @@
+#!/usr/bin/env python3
+
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+### [ CONFIGURATION ] ###
+INTERACTIONS_QML = Path("/etc/xdg/quickshell/caelestia/modules/drawers/Interactions.qml")
+
+def patch():
+    if not INTERACTIONS_QML.exists():
+        print(f"⚠️  Interactions.qml not found at {INTERACTIONS_QML}")
+        return
+
+    print("💉 Patching Interactions.qml for Utilities drag-to-show...")
+    try:
+        with open(INTERACTIONS_QML, "r") as f:
+            content = f.read()
+
+        # 1. Update Hover Logic (Add check for Config.utilities.showOnHover)
+        # 2. Add Drag Logic (Similar to Dashboard)
+        
+        # This replaces the original hover block with a conditional one and adds the drag block
+        # We target the specific part after dashboard drag logic and before utilities hover logic
+        
+        # First, we ensure we don't double-patch
+        if "// (PATCHED: UTILITIES DRAG)" in content:
+            print("✨ Interactions.qml already patched.")
+            return
+
+        # Replace original hover logic with a conditional one
+        new_content = re.sub(
+            r"(const showUtilities = )(inBottomPanel\(panels\.utilities, x, y, true\);)",
+            r"// (PATCHED: UTILITIES DRAG)\n        \1Config.utilities.showOnHover && \2",
+            content
+        )
+        
+        # Inject Drag Logic after the hover block
+        drag_logic = """
+        // Show/hide utilities on drag (IF HOVER IS DISABLED)
+        if (Config.utilities.enabled && !Config.utilities.showOnHover && pressed && inBottomPanel(panels.utilities, dragStart.x, dragStart.y, true) && withinPanelWidth(panels.utilities, x, y)) {
+            if (dragY < -Config.utilities.dragThreshold)
+                visibilities.utilities = true;
+            else if (dragY > Config.utilities.dragThreshold)
+                visibilities.utilities = false;
+        }"""
+        
+        # Find where to inject (after the utilities hover block)
+        new_content = re.sub(
+            r"(visibilities\.utilities = false;\n        })",
+            r"\1" + drag_logic,
+            new_content
+        )
+
+        # Write to temp and move with sudo
+        tmp_file = "/tmp/Interactions.qml"
+        with open(tmp_file, "w") as f:
+            f.write(new_content)
+        
+        subprocess.run(["sudo", "cp", tmp_file, str(INTERACTIONS_QML)], check=True)
+        print("✅ Interactions.qml patched successfully.")
+
+    except Exception as e:
+        print(f"💀 Failed to patch Interactions.qml: {e}")
+
+if __name__ == "__main__":
+    patch()

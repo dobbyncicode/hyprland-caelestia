@@ -1,97 +1,42 @@
-# Hyprland Caelestia - Personal Configuration
+# 🌙 Caelestia - Hybrid Dotfiles
 
-This repository contains my personal Hyprland window manager configuration and customizations. It's tailored to my specific workflow and preferences.
+A modular, scalable, and "Vibecoded" Hyprland setup. This repository acts as a **Selective Override Layer** on top of the Caelestia upstream, ensuring custom tweaks are preserved through shell updates.
 
-## Overview
+---
 
-Caelestia represents a personalized desktop environment built on Hyprland with carefully curated configurations, themes, and keybindings optimized for productivity and aesthetics.
+## 📂 Project Structure
 
-## Prerequisites
-- arch-based distro
-- hyprland
-- caelestia dots
+- `dotfiles/` — Custom overrides for `$HOME` (Links *inside* upstream configs).
+- `system/` — Root-level tweaks (`/etc`) managed via `sudo`.
+- `assets/` — Centralized media (Pictures, Videos, Documents, Tailscale).
+- `scripts/` — Automated maintenance, configuration, and patching.
 
-## System tweaks
-- Auto login user to tty1
-- Auto start hyprland from tty1
-- Custom `pacman.conf`
+## 🚀 Deployment
 
-## Caelestia shell tweaks
-- Script to change wallpaper fill to stretch
-- Custom `~/.config/caelestia/shell.json`
+To install dependencies, link dotfiles, and apply system patches:
 
-## Other config tweaks
-- Hyprland overrides
-  - Animations
-  - Borders
-  - Decorations
-  - Miscs
-  - Cursor
-  - Inputs
-  - Keybinds
-  - Monitors
-  - Unbinds
-  - Variables
-  - Window rules
-- Swappy
-  - Custom swappy config
-- Custom fish greeting
-
-## File Structure
-
-```
-$HOME
-├── caelestia-config                    # Base config directory
-│   ├── auto-tty-login.conf             # tty1 auto-login script
-│   ├── .bash_profile                   # Auto start hyprland from tty1
-│   ├── caelestia                       # Base caelestia config
-│   │   ├── hypr-user.conf              # Main caelestia hyprland user override
-│   │   ├── hypr-vars.conf
-│   │   ├── Modules                     # Hyprland modules dir
-│   │   │   ├── All-About-UI            # UI stuff
-│   │   │   │   ├── animations.conf     # Animations override
-│   │   │   │   ├── borders.conf        # Borders override
-│   │   │   │   ├── decorations.conf    # Decorations override
-│   │   │   │   └── miscs.conf          # Miscellanious override
-│   │   │   └── All-About-UX            # UX stuff
-│   │   │       ├── auto-start.conf     # Auto-start packages / services
-│   │   │       ├── cursor.conf         # Cursor override
-│   │   │       ├── inputs.conf         # Inputs override
-│   │   │       ├── keybinds.conf       # Keybinds override
-│   │   │       ├── monitors.conf       # Monitors override
-│   │   │       ├── no-u.conf           # Unbind caelestia default keybinds
-│   │   │       ├── variables.conf      # Variables override
-│   │   │       └── window-rules.conf   # Window rules override
-│   │   ├── repo-path.conf              # Auto-generated local repo path
-│   │   └── shell.json                  # Custom caelestia shell config
-│   ├── fish_greeting.fish              # Custom fish greeting
-│   ├── my-aliases.fish                 # Custom fish abbr
-│   ├── pacman.conf                     # Custom pacman.conf
-│   └── swappy                          # Swappy config
-│       └── config
-├── Documents                           # Documents directory
-│   └── .gitkeep
-├── .gitignore
-├── Pictures                            # ~/Pictures
-│   ├── Screenshots                     # ~/Pictures/Screenshots
-│   │   └── .gitkeep
-│   └── Wallpapers                      # ~/Pictures/Wallpapers
-│       └── forest.jpg
-├── README.md
-├── scripts                             # General scripts
-│   ├── clean-up                        # System file clean-up / factory reset
-│   ├── install-deps                    # Opinionated base package install script
-│   ├── link-dots                       # Symlink config files
-│   └── wallpaper-fill                  # Change wallpaper fill mode
-├── tailscale-files                     # Transferred files via TailScale
-│   └── .gitkeep
-└── Videos                              # ~/Videos
-    └── Recordings                      # ~/Videos/Recordings
-        └── .gitkeep
+```bash
+chmod +x scripts/setup
+./scripts/setup
 ```
 
-## Warning
+## 🛠️ Tooling
 
-This repository contains **personal configurations** that are specifically tuned to my system. Using these configurations as-is may cause **conflicts** or **breakage** on your setup, especially the `monitors.conf` as it is hard-coded at the moment. You may comment out this file at `/hypr-user.conf` if you still want to try, but I will not be responsible for anything that may happen with your current setup. Back it up first as always. These are not generic dotfiles meant for sharing—they're my personal workspace. 
+| Script | Function |
+| :--- | :--- |
+| `setup` | The core installer. Handles recursive linking and system patching. |
+| `monitor-config` | Interactive monitor layout (Side-by-side/Stacked, Bottom-Aligned). |
+| `patch-shell` | Surgical patch for Quickshell utilities (Hover to Drag logic). |
+| `clean-up` | Reclaims space by purging caches, orphans, and system logs. |
+| `wallpaper-fill` | Modifies the Caelestia background shell scaling modes. |
 
-If you're looking for the base caelestia configuration, visit the [official caelestia dots repository](https://github.com/caelestia-dots/caelestia).
+## 󰍹  Monitor Configuration
+
+To update your display layout (Side-by-side or Stacked) while maintaining bottom-alignment:
+
+```bash
+./scripts/monitor-config --new
+```
+
+---
+*Stay minimal. Stay efficient. Stay aesthetic.* 🌙

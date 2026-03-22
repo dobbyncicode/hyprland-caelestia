@@ -1,0 +1,159 @@
+#!/usr/bin/env python3
+
+import os
+import shutil
+import subprocess
+from pathlib import Path
+
+### [ CONFIGURATION ] ###
+REPO_ROOT = Path(__file__).parent.parent.resolve()
+DOTFILES_DIR = REPO_ROOT / "dotfiles"
+SYSTEM_DIR = REPO_ROOT / "system"
+HOME = Path.home()
+USER = os.getlogin()
+
+### [ UTILITIES ] ###
+def run_cmd(cmd, use_sudo=False):
+    if use_sudo:
+        cmd = ["sudo"] + cmd
+    try:
+        subprocess.run(cmd, check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"💀 Error: {e}")
+
+def setup_yay():
+    if shutil.which("yay"): return
+    print("🐣 Installing yay-bin...")
+    run_cmd(["sudo", "pacman", "-S", "--noconfirm", "--needed", "git", "base-devel"])
+    tmp = Path("/tmp/yay-bin")
+    if tmp.exists(): shutil.rmtree(tmp)
+    run_cmd(["git", "clone", "https://aur.archlinux.org/yay-bin.git", str(tmp)])
+    subprocess.run(["makepkg", "-si", "--noconfirm"], cwd=tmp, check=True)
+
+def install_deps():
+    pkg_file = REPO_ROOT / "scripts/packages.txt"
+    if not pkg_file.exists():
+        print(f"❌ Missing: {pkg_file}")
+        return
+
+    with open(pkg_file, "r") as f:
+        packages = [line.strip() for line in f if line.strip()]
+
+    print(f"🔍 Installing {len(packages)} packages...")
+    setup_yay()
+    run_cmd(["yay", "-S", "--noconfirm", "--needed"] + packages)
+    
+    services = ["bluetooth", "tailscaled"]
+    for svc in services:
+        run_cmd(["systemctl", "enable", "--now", svc], use_sudo=True)
+
+### [ SYMLINK LOGIC ] ###
+def link_recursive(source_base, target_base, sudo=False):
+    """Recursively symlinks files from source to target without deleting target dirs."""
+    for root, dirs, files in os.walk(source_base):
+        rel_path = Path(root).relative_to(source_base)
+        target_dir = target_base / rel_path
+
+        # Handle directory symlinks (e.g. upstream links)
+        if target_dir.is_symlink() and target_dir.is_dir():
+            print(f"📁 Directory link detected: {target_dir} (Skipping override)")
+            # Still process files inside this symlinked directory
+        elif not target_dir.exists():
+            print(f"📁 Creating: {target_dir}")
+            if sudo:
+                run_cmd(["mkdir", "-p", str(target_dir)], use_sudo=True)
+            else:
+                target_dir.mkdir(parents=True, exist_ok=True)
+
+        for file in files:
+            source_file = Path(root) / file
+            target_file = target_dir / file
+
+            if target_file.exists() or target_file.is_symlink():
+                if target_file.is_dir() and not target_file.is_symlink():
+                    print(f"⚠️  Skipping: {target_file} is a directory")
+                    continue
+                
+                print(f"♻️  Overriding: {target_file}")
+                if sudo:
+                    run_cmd(["rm", "-f", str(target_file)], use_sudo=True)
+                else:
+                    target_file.unlink()
+
+            print(f"🔗 Linking: {target_file}")
+            if sudo:
+                run_cmd(["ln", "-sf", str(source_file), str(target_file)], use_sudo=True)
+            else:
+                target_file.symlink_to(source_file)
+
+### [ EXTRA TWEAKS ] ###
+def generate_configs():
+    # 1. repo-path.conf
+    conf_path = DOTFILES_DIR / ".config/caelestia/repo-path.conf"
+    with open(conf_path, "w") as f:
+        f.write(f"$root_dir = {REPO_ROOT}\n")
+    print(f"📝 Generated: {conf_path}")
+
+    # 2. Patch auto-login with current user
+    login_override = SYSTEM_DIR / "etc/systemd/system/getty@tty1.service.d/override.conf"
+    if login_override.exists():
+        with open(login_override, "r") as f:
+            content = f.read()
+        
+        # Replace hardcoded username with dynamic one
+        new_content = content.replace("dobby", USER)
+        with open(login_override, "w") as f:
+            f.write(new_content)
+        print(f"📝 Patched auto-login for: {USER}")
+
+    # 3. Smart Monitor Configuration
+    mon_script = REPO_ROOT / "scripts/monitor-config"
+    mon_conf = DOTFILES_DIR / ".config/caelestia/modules/ux/monitors.conf"
+    if mon_script.exists():
+        cmd = [str(mon_script)]
+        if not mon_conf.exists(): cmd.append("--new")
+        print("\n🖥️  Checking monitor configuration...")
+        subprocess.run(cmd)
+
+    # 4. Patch Shell Utilities (Drag to show)
+    patch_script = REPO_ROOT / "scripts/patch-shell"
+    if patch_script.exists():
+        print("\n💉 Checking shell patches...")
+        subprocess.run([str(patch_script)])
+
+### [ MAIN ] ###
+def main():
+    if os.geteuid() == 0:
+        print("❌ Don't run with SUDO!")
+        return
+
+    print("🚀 Starting Setup...")
+    generate_configs()
+
+    choice = input("📦 Install dependencies? (y/N): ").lower()
+    if choice == 'y': install_deps()
+
+    print("\n🏠 Linking User Dotfiles...")
+    link_recursive(DOTFILES_DIR, HOME)
+
+    print("\n🔒 Linking System Files (SUDO)...")
+    link_recursive(SYSTEM_DIR, Path("/"), sudo=True)
+
+    print("\n🎨 Linking Asset Folders to $HOME...")
+    assets_dir = REPO_ROOT / "assets"
+    standard_folders = ["Pictures", "Videos", "Documents", "tailscale-files"]
+    for folder in standard_folders:
+        source, target = assets_dir / folder, HOME / folder
+        if not source.exists(): source.mkdir(parents=True, exist_ok=True)
+        if target.exists() or target.is_symlink():
+            if not target.is_symlink():
+                print(f"⚠️  {target} is a real directory. Skipping.")
+                continue
+            target.unlink()
+        target.symlink_to(source)
+        print(f"🔗 Linked: {folder}")
+
+    print("\n✨ All systems go.")
+
+if __name__ == "__main__":
+    main()

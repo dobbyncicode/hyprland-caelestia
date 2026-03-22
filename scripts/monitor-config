@@ -1,0 +1,150 @@
+#!/usr/bin/env python3
+
+import json
+import subprocess
+import sys
+import re
+import os
+from pathlib import Path
+
+### [ COLORS & SYMBOLS ] ###
+C = "\033[1;36m" # Cyan
+G = "\033[1;32m" # Green
+Y = "\033[1;33m" # Yellow
+R = "\033[1;31m" # Red
+B = "\033[1;34m" # Blue
+N = "\033[0m"    # Reset
+
+### [ CONFIGURATION ] ###
+REPO_ROOT = Path(__file__).parent.parent.resolve()
+OUTPUT_FILE = REPO_ROOT / "dotfiles/.config/caelestia/modules/ux/monitors.conf"
+LOCK_QML = Path("/etc/xdg/quickshell/caelestia/modules/lock/LockSurface.qml")
+DRAWERS_QML = Path("/etc/xdg/quickshell/caelestia/modules/drawers/Drawers.qml")
+
+# --- [ UI Options ] -----------------------------------------------------------
+ROT_OPTS = {
+    "1": "Landscape",
+    "2": "Portrait",
+    "3": "Inverted Landscape",
+    "4": "Inverted Portrait"
+}
+
+def get_monitors():
+    try:
+        output = subprocess.check_output(["hyprctl", "monitors", "-j"], text=True)
+        return json.loads(output)
+    except Exception:
+        print(f"{R}💀 Error: Is Hyprland running?{N}")
+        return []
+
+def display_info(monitors):
+    print(f"\n{B}󰍹  [ CONNECTED MONITORS ]{N}")
+    print(f"{B}──────────────────────────────────────────────────{N}")
+    for i, m in enumerate(monitors, start=1):
+        print(f"  {G}{i}. {N}{C}{m['name']}{N}")
+        print(f"     {B} {N}Model : {m['make']} {m['model']}")
+        print(f"     {B} {N}Specs : {m['width']}x{m['height']} @ {int(m['refreshRate'])}Hz")
+        print(f"     {B} {N}Scale : {m['scale']}")
+    print(f"{B}──────────────────────────────────────────────────{N}")
+
+def ask(question, options=None, default="1"):
+    print(f"\n{Y}󰋗  {question}{N}")
+    if options:
+        # Sort keys to ensure 1, 2, 3... order
+        sorted_keys = sorted(options.keys(), key=int)
+        for k in sorted_keys:
+            print(f"  {G}({k}){N} {options[k]}")
+        res = input(f"\n{C}󰄾 Select [Default {default}]: {N}").strip()
+        return res if res in options else default
+    return input(f"\n{C}󰄾 Input [Default {default}]: {N}").strip() or default
+
+def patch_quickshell(monitor_name):
+    print(f"\n{B}🔒 Patching Quickshell surfaces...{N}")
+    files_to_patch = [
+        (LOCK_QML, "id: lockContent", r'visible: root.screen.name === ".*"', f'visible: root.screen.name === "{monitor_name}"'),
+        (DRAWERS_QML, "id: win", r'visible: scope.modelData.name === ".*"', f'visible: scope.modelData.name === "{monitor_name}"')
+    ]
+
+    for qml_path, target_id, regex, new_line in files_to_patch:
+        if qml_path.exists():
+            try:
+                with open(qml_path, "r") as f: content = f.read()
+                if target_id in content:
+                    if re.search(regex, content):
+                        new_content = re.sub(regex, new_line, content)
+                    else:
+                        new_content = content.replace(target_id, f"{target_id}\n            {new_line}")
+                    
+                    tmp = f"/tmp/{qml_path.name}"
+                    with open(tmp, "w") as f: f.write(new_content)
+                    subprocess.run(["sudo", "cp", tmp, str(qml_path)], check=True)
+                    print(f"  {G}✅ {qml_path.name} patched.{N}")
+            except Exception as e: print(f"  {R}💀 Failed to patch {qml_path.name}: {e}{N}")
+
+def generate(interactive=False):
+    monitors = get_monitors()
+    if not monitors: return
+
+    if interactive: display_info(monitors)
+    
+    count = len(monitors)
+    max_h = max(m['height'] / m['scale'] for m in monitors)
+    max_w = max(m['width'] / m['scale'] for m in monitors)
+    
+    layout, lock_monitor = [], ""
+    style = "1"
+
+    if interactive:
+        style = ask("Layout Style?", {"1": "Horizontal (Side-by-side)", "2": "Vertical (Stacked)"}, "1")
+        
+        if count == 1:
+            m = monitors[0]
+            m['rot'] = ask(f"Orientation for {m['name']}?", ROT_OPTS, "1")
+            layout, lock_monitor = [m], m['name']
+        elif count == 2:
+            opts = {str(i): mon['name'] for i, mon in enumerate(monitors, start=1)}
+            left_idx = int(ask("Which monitor is on the LEFT?", opts, "1")) - 1
+            left, right = monitors[left_idx], monitors[1 - left_idx]
+            left['rot'] = ask(f"Orientation for LEFT ({left['name']})?", ROT_OPTS, "1")
+            right['rot'] = ask(f"Orientation for RIGHT ({right['name']})?", ROT_OPTS, "1")
+            layout, lock_monitor = [left, right], right['name']
+        elif count >= 3:
+            order = ask("Sort indices from LEFT to RIGHT (e.g., 1 2 3)").split()
+            for idx in order:
+                m = monitors[int(idx)-1]
+                m['rot'] = ask(f"Orientation for {m['name']}?", ROT_OPTS, "1")
+                layout.append(m)
+            lock_monitor = layout[len(layout)//2]['name']
+    else:
+        layout, style, lock_monitor = monitors, "1", monitors[-1]['name']
+
+    # --- [ GENERATION ] ---
+    lines = ["### [ MONITORS CONFIG ] ###", f"$lock_monitor = {lock_monitor}", ""]
+    curr_x, curr_y = 0, 0
+    for m in layout:
+        w, h = int(m['width']/m['scale']), int(m['height']/m['scale'])
+        
+        # UI "1" (Landscape) -> Hyprland "0"
+        # UI "2" (Portrait) -> Hyprland "1"
+        hypr_rot = str(int(m.get('rot', "1")) - 1)
+        
+        if hypr_rot in ["1", "3"]: w, h = h, w
+        
+        is_vert = (style == "2")
+        y_off = int(max_h - h) if not is_vert else curr_y
+        x_off = curr_x if not is_vert else int(max_w - w) // 2
+        
+        pos = f"{curr_x}x{y_off}" if not is_vert else f"{x_off}x{curr_y}"
+        lines.append(f"monitor = {m['name']}, {m['width']}x{m['height']}@{int(m['refreshRate'])}, {pos}, {m['scale']}, transform, {hypr_rot}")
+        
+        if not is_vert: curr_x += w
+        else: curr_y += h
+
+    with open(OUTPUT_FILE, "w") as f: f.write("\n".join(lines) + "\n")
+    print(f"\n{G}✨ Config saved to {OUTPUT_FILE}{N}")
+    patch_quickshell(lock_monitor)
+
+if __name__ == "__main__":
+    if "--new" in sys.argv: generate(interactive=True)
+    elif not OUTPUT_FILE.exists(): generate(interactive=False)
+    else: print(f"{G}✅ Monitor config exists. Skipping.{N}")

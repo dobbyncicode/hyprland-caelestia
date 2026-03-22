@@ -13,7 +13,7 @@ function ts-get
     end
 
     set -l repo_root (string replace '$root_dir = ' '' (cat $config_file))
-    set -l target "$repo_root/tailscale-files"
+    set -l target "$repo_root/assets/tailscale-files"
 
     sudo tailscale file get "$target/"
 

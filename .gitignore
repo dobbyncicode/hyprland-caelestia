@@ -1,16 +1,28 @@
+# --- [ Generated Configs ] ---
+dotfiles/.config/caelestia/repo-path.conf
+
+# --- [ System / Logs ] ---
 *.log
-caelestia-config/caelestia/repo-path.conf
+.cache/
+.thumbnails/
 
-Documents/*
-Videos/*
-Pictures/*
-tailscale-files/*
+# --- [ Asset Contents ] ---
+# We track the folders via .gitkeep, but ignore the actual heavy files.
+assets/Documents/*
+assets/Videos/*
+assets/Pictures/*
+assets/tailscale-files/*
 
-!Videos/Recordings/
-!Pictures/Screenshots/
-!Pictures/Wallpapers/
+# Keep specific subfolders structure
+!assets/Videos/Recordings/
+!assets/Pictures/Screenshots/
+!assets/Pictures/Wallpapers/
 
-Videos/Recordings/*
-Pictures/Screenshots/*
+# Ignore contents of those subfolders
+assets/Videos/Recordings/*
+assets/Pictures/Screenshots/*
+# assets/Pictures/Wallpapers/* # Optional: uncomment if you want to ignore wallpapers too
 
+# --- [ Git Hygiene ] ---
 !**/.gitkeep
+.DS_Store
